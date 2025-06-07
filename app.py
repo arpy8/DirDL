@@ -6,8 +6,8 @@ from hashlib import sha256
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from github_downloder import GitHubDownloader
-from fastapi.responses import HTMLResponse, FileResponse
 from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 
 
 load_dotenv()
@@ -44,13 +44,10 @@ async def download_github_directory(request: DownloadRequest, background_tasks: 
         auth_token_env = os.getenv("AUTH_TOKEN")
         github_token_env = os.getenv("GITHUB_TOKEN")
         
-        if not github_token_env:
-            raise HTTPException(status_code=500, detail="GitHub token not configured on server")
-        
         if request.token:
             auth_token_hash = sha256(auth_token_env.encode('utf-8')).hexdigest()
             if auth_token_hash != request.token:
-                raise HTTPException(status_code=401, detail="Invalid authentication token")
+                return RedirectResponse(url="/404", status_code=302)
         
         if not request.url or not request.url.strip():
             raise HTTPException(status_code=400, detail="URL is required")
