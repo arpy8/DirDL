@@ -41,14 +41,15 @@ async def serve_frontend():
 async def download_github_directory(request: DownloadRequest, background_tasks: BackgroundTasks):
     """Download GitHub directory and return as zip file"""
     try:
+        auth_token_env = os.getenv("AUTH_TOKEN")
         github_token_env = os.getenv("GITHUB_TOKEN")
         
         if not github_token_env:
             raise HTTPException(status_code=500, detail="GitHub token not configured on server")
         
         if request.token:
-            github_token_hash = sha256(github_token_env.encode('utf-8')).hexdigest()
-            if github_token_hash != request.token:
+            auth_token_hash = sha256(auth_token_env.encode('utf-8')).hexdigest()
+            if auth_token_hash != request.token:
                 raise HTTPException(status_code=401, detail="Invalid authentication token")
         
         if not request.url or not request.url.strip():
