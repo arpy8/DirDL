@@ -46,7 +46,6 @@ async def download_github_directory(request: DownloadRequest, background_tasks: 
         if not github_token_env:
             raise HTTPException(status_code=500, detail="GitHub token not configured on server")
         
-        # If token is provided, validate it
         if request.token:
             github_token_hash = sha256(github_token_env.encode('utf-8')).hexdigest()
             if github_token_hash != request.token:
@@ -55,12 +54,10 @@ async def download_github_directory(request: DownloadRequest, background_tasks: 
         if not request.url or not request.url.strip():
             raise HTTPException(status_code=400, detail="URL is required")
         
-        # Create temporary directory for download
         temp_download_dir = tempfile.mkdtemp()
         download_path = os.path.join(temp_download_dir, "download")
         
         try:
-            # Use the actual token for GitHub API
             downloader = GitHubDownloader(github_token_env)
             
             try:
@@ -75,11 +72,9 @@ async def download_github_directory(request: DownloadRequest, background_tasks: 
             if not success:
                 raise HTTPException(status_code=500, detail="Failed to download repository content")
             
-            # Check if any files were downloaded
             if not os.path.exists(download_path) or not os.listdir(download_path):
                 raise HTTPException(status_code=404, detail="No files found or directory is empty")
             
-            # Create zip file in system temp directory
             zip_filename = f"{owner}_{repo}_{path.replace('/', '_') if path else 'root'}.zip"
             zip_path = os.path.join(tempfile.gettempdir(), f"github_dl_{hash(request.url)}_{zip_filename}")
             
@@ -90,10 +85,8 @@ async def download_github_directory(request: DownloadRequest, background_tasks: 
                         arcname = os.path.relpath(file_path, download_path)
                         zipf.write(file_path, arcname)
             
-            # Clean up download directory immediately
             shutil.rmtree(temp_download_dir, ignore_errors=True)
             
-            # Schedule cleanup of zip file after response is sent
             background_tasks.add_task(cleanup_file, zip_path)
             
             return FileResponse(
@@ -103,17 +96,14 @@ async def download_github_directory(request: DownloadRequest, background_tasks: 
             )
             
         except HTTPException:
-            # Clean up on error
             shutil.rmtree(temp_download_dir, ignore_errors=True)
             raise
         except Exception as e:
-            # Clean up on error
             shutil.rmtree(temp_download_dir, ignore_errors=True)
             print(f"Unexpected error: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
             
     except HTTPException:
-        # Re-raise HTTP exceptions as-is
         raise
     except Exception as e:
         print(f"Unexpected error: {str(e)}")

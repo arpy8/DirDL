@@ -29,7 +29,6 @@ class GitHubDownloader:
             owner = parts[0]
             repo = parts[1]
             
-            # Find branch and path
             if len(parts) > 2 and parts[2] == 'tree':
                 branch = parts[3] if len(parts) > 3 else 'main'
                 path = '/'.join(parts[4:]) if len(parts) > 4 else ''
@@ -74,7 +73,6 @@ class GitHubDownloader:
                     return True
                 except Exception as decode_error:
                     print(f"Error decoding content for {local_path}: {str(decode_error)}")
-                    # Fall back to download_url
                     response = self.session.get(file_info['download_url'])
                     if response.status_code == 200:
                         with open(local_path, 'wb') as f:
