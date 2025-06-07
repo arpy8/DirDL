@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Github Directory Downloader</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: #0a0a0a;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        color: #ffffff;
+      }
+
+      .container {
+        background: #1a1a1a;
+        border: 1px solid #333333;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        padding: 32px;
+        width: 100%;
+        max-width: 500px;
+        text-align: center;
+      }
+
+      h1 {
+        color: #ffffff;
+        margin-bottom: 24px;
+        font-size: 1.8rem;
+        font-weight: 600;
+      }
+
+      .input-container {
+        position: relative;
+        margin-bottom: 12px;
+      }
+
+      #input-field {
+        width: 100%;
+        padding: 12px 16px;
+        font-size: 14px;
+        border: 1px solid #333333;
+        border-radius: 8px;
+        background: #0a0a0a;
+        color: #ffffff;
+        transition: all 0.2s ease;
+      }
+
+      #input-field:focus {
+        outline: none;
+        border-color: #ffffff;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+      }
+
+      #input-field::placeholder {
+        color: #666666;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        flex: 1;
+        min-width: 120px;
+        padding: 10px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        border: 1px solid #333333;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        background: #1a1a1a;
+        color: #ffffff;
+      }
+
+      button:hover {
+        background: #333333;
+        border-color: #666666;
+      }
+
+      button:active {
+        background: #0a0a0a;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      #clear-btn {
+        background: #0a0a0a;
+        border-color: #666666;
+      }
+
+      #clear-btn:hover {
+        background: #333333;
+        border-color: #ffffff;
+      }
+
+      #reload {
+        border-color: #666666;
+      }
+
+      #reload:hover {
+        background: #333333;
+        border-color: #ffffff;
+      }
+
+      #download-btn:hover {
+        background: #ffffff;
+        color: #0a0a0a;
+        border-color: #ffffff;
+      }
+
+      .status-area {
+        margin-top: 12px;
+      }
+
+      #log {
+        padding: 12px 16px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 400;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        border: 1px solid #333333;
+      }
+
+      .log-success {
+        background: #0a0a0a;
+        color: #ffffff;
+        border-color: #666666;
+      }
+
+      .log-error {
+        background: #1a1a1a;
+        color: #ffffff;
+        border-color: #999999;
+      }
+
+      .log-info {
+        background: #1a1a1a;
+        color: #cccccc;
+        border-color: #333333;
+      }
+
+      .log-default {
+        background: #0a0a0a;
+        color: #999999;
+        border-color: #333333;
+      }
+
+      @media (max-width: 600px) {
+        .button-group {
+          flex-direction: column;
+        }
+
+        button {
+          min-width: unset;
+        }
+
+        .container {
+          padding: 24px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Github Directory Downloader</h1>
+
+      <div class="input-container">
+        <input
+          type="text"
+          id="input-field"
+          placeholder="https://github.com/arpy8/PastFm/tree/main/logs"
+        />
+      </div>
+
+      <div class="button-group">
+        <button id="download-btn" type="button">Download</button>
+      </div>
+
+      <div class="status-area">
+        <div id="log" class="log-default">Status: Ready</div>
+      </div>
+    </div>
+
+    <script>
+      const DIR_DL_TOKEN = localStorage.getItem("DIR_DL_TOKEN");
+      if (!DIR_DL_TOKEN) {
+        window.location = "/404";
+      }
+
+      const logElement = document.querySelector("#log");
+      const inputField = document.querySelector("#input-field");
+      const downloadBtn = document.querySelector("#download-btn");
+
+      function log(text, type = "info") {
+        logElement.className = `log-${type}`;
+        logElement.textContent = text;
+      }
+
+      async function pasteFromClipboard() {
+        try {
+          if (!navigator.clipboard) {
+            throw new Error("Clipboard API not supported in this browser");
+          }
+
+          const clipboardContents = await navigator.clipboard.read();
+
+          for (const item of clipboardContents) {
+            if (item.types.includes("text/plain")) {
+              const blob = await item.getType("text/plain");
+              const text = await blob.text();
+
+              if (text.trim()) {
+                inputField.value = text;
+                updateCharCount();
+                log(
+                  `✅ Successfully pasted ${text.length} characters`,
+                  "success"
+                );
+              } else {
+                log("⚠️ Clipboard contains empty text", "info");
+              }
+              return;
+            }
+          }
+
+          log("⚠️ No text content found in clipboard", "info");
+        } catch (error) {
+          console.error("Clipboard error:", error);
+
+          if (error.name === "NotAllowedError") {
+            log(
+              "❌ Clipboard access denied. Please grant permission.",
+              "error"
+            );
+          } else if (error.message.includes("not supported")) {
+            log("❌ Clipboard API not supported in this browser", "error");
+          } else {
+            log(`❌ Failed to read clipboard: ${error.message}`, "error");
+          }
+        }
+      }
+      async function downloadContent() {
+        try {
+          const url = inputField.value.trim();
+
+          if (!url) {
+            log("⚠️ Please enter a GitHub URL", "info");
+            return;
+          }
+
+          if (!url.includes("github.com")) {
+            log("❌ Please enter a valid GitHub URL", "error");
+            return;
+          }
+
+          downloadBtn.disabled = true;
+          downloadBtn.textContent = "⏳ Downloading...";
+          log("🔄 Preparing download...", "info");
+
+          const response = await fetch("/download", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              url: url,
+              token: DIR_DL_TOKEN,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || `HTTP ${response.status}`);
+          }
+
+          const blob = await response.blob();
+          const downloadUrl = window.URL.createObjectURL(blob);
+
+          const contentDisposition = response.headers.get(
+            "content-disposition"
+          );
+          let filename = "github-download.zip";
+          if (contentDisposition) {
+            const filenameMatch =
+              contentDisposition.match(/filename="?([^"]+)"?/);
+            if (filenameMatch) {
+              filename = filenameMatch[1];
+            }
+          }
+
+          const link = document.createElement("a");
+          link.href = downloadUrl;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          window.URL.revokeObjectURL(downloadUrl);
+
+          log(`✅ Download completed: ${filename}`, "success");
+        } catch (error) {
+          console.error("Download error:", error);
+          log(`❌ Download failed: ${error.message}`, "error");
+        } finally {
+          downloadBtn.disabled = false;
+          downloadBtn.textContent = "Download";
+        }
+      }
+      function updateCharCount() {
+        const length = inputField.value.length;
+        if (length > 0) {
+          log(
+            `📝 Input contains ${length} character${length !== 1 ? "s" : ""}`,
+            "info"
+          );
+        }
+      }
+      downloadBtn.addEventListener("click", downloadContent);
+
+      inputField.addEventListener("input", updateCharCount);
+
+      inputField.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && e.key === "v") {
+          setTimeout(() => {
+            updateCharCount();
+            log("📋 Pasted via keyboard shortcut", "success");
+          }, 100);
+        }
+      });
+
+      updateCharCount();
+
+      if (!navigator.clipboard) {
+        log("⚠️ Clipboard API not supported in this browser", "error");
+      }
+    </script>
+  </body>
+</html>
