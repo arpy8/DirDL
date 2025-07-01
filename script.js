@@ -22,7 +22,7 @@ const downloadBtn = document.querySelector("#download-btn");
 
 function log(text, type = "info") {
   logElement.className = `log-${type}`;
-  logs.push(text);
+  logs.push(`[${new Date().toLocaleString()}] ${text}`);
   logElement.innerHTML = logs.join("<br>");
 }
 
@@ -35,10 +35,10 @@ async function downloadContent() {
   }
 
   try {
-    log("Parsing URL...", "info");
+    log("Parsing URL", "info");
     const { owner, repo, path, isRepo } = parseGitHubUrl(url);
     
-    log("Fetching directory contents...", "info");
+    log("Fetching directory contents", "info");
     downloadBtn.disabled = true;
     
     const files = await fetchDirectoryContents(owner, repo, path);
@@ -48,7 +48,7 @@ async function downloadContent() {
       return;
     }
     
-    log(`Found ${files.length} files. Creating ZIP...`, "info");
+    log(`Found ${files.length} files. Creating ZIP`, "info");
     const folderName = isRepo ? repo : `${repo}-${path.split('/').pop() || 'root'}`;
     await createAndDownloadZip(files, folderName, owner, repo);
     
@@ -143,7 +143,7 @@ async function createAndDownloadZip(files, folderName, owner, repo) {
     
     for (const file of files) {
       try {
-        log(`Downloading ${file.name} (${downloadedCount + 1}/${totalFiles})...`, "info");
+        log(`Downloading ${file.name} (${downloadedCount + 1}/${totalFiles})`, "info");
         
         const apiUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${file.path}`;
         const response = await fetch(apiUrl, {
@@ -183,7 +183,7 @@ async function createAndDownloadZip(files, folderName, owner, repo) {
       throw new Error("No files were successfully downloaded");
     }
     
-    log(`Generating ZIP file with ${successfulDownloads} files...`, "info");
+    log(`Generating ZIP file with ${successfulDownloads} files`, "info");
     const zipBlob = await zip.generateAsync({ 
       type: "blob",
       compression: "DEFLATE",
