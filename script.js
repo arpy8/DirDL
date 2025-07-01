@@ -1,4 +1,5 @@
 let DIR_DL_TOKEN = localStorage.getItem("DIR_DL_TOKEN") || null;
+let logs = [];
 
 let isTokenValid = false;
 
@@ -21,7 +22,8 @@ const downloadBtn = document.querySelector("#download-btn");
 
 function log(text, type = "info") {
   logElement.className = `log-${type}`;
-  logElement.textContent = text;
+  logs.push(text);
+  logElement.innerHTML = logs.join("<br>");
 }
 
 async function downloadContent() {
@@ -134,7 +136,6 @@ async function createAndDownloadZip(files, folderName, owner, repo) {
   
   try {
     const zip = new JSZip();
-    // logs = 
     
     let downloadedCount = 0;
     const totalFiles = files.length;

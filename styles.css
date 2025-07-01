@@ -131,8 +131,9 @@ font-size: 13px;
 font-weight: 400;
 min-height: 44px;
 display: flex;
-align-items: center;
-justify-content: center;
+align-items: flex-start;
+justify-content: flex-start;
+text-align: left;
 transition: all 0.2s ease;
 border: 1px solid #333333;
 }
